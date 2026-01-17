@@ -7,6 +7,27 @@ import FinancePage from "./pages/FinancePage.jsx";
 import InventoryPage from "./pages/InventoryPage.jsx";
 import TopNav from "./components/TopNav.jsx";
 
+function BottomNav({ currentPath, onGo }) {
+  return (
+    <div className="bottomnav" role="navigation" aria-label="Navegación">
+      <div className="bottomnav-inner">
+        <button className={`tabbtn ${currentPath === "/home" ? "active" : ""}`} onClick={() => onGo("/home")}>
+          🧾 <strong>Principal</strong>
+        </button>
+        <button className={`tabbtn ${currentPath === "/ventas" ? "active" : ""}`} onClick={() => onGo("/ventas")}>
+          📦 <strong>Ventas</strong>
+        </button>
+        <button className={`tabbtn ${currentPath === "/finanzas" ? "active" : ""}`} onClick={() => onGo("/finanzas")}>
+          💰 <strong>Finanzas</strong>
+        </button>
+        <button className={`tabbtn ${currentPath === "/inventario" ? "active" : ""}`} onClick={() => onGo("/inventario")}>
+          🧮 <strong>Inventario</strong>
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function AppShell({ profile, setProfile }) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -44,14 +65,19 @@ function AppShell({ profile, setProfile }) {
           <Route path="/inventario" element={<InventoryPage />} />
           <Route path="*" element={<Navigate to={profile ? "/home" : "/login"} replace />} />
         </Routes>
+
+        {/* Spacer for mobile bottom nav */}
+        {showNav && <div className="bottomnav-spacer" />}
       </div>
+
+      {/* Bottom nav (visible only on mobile via CSS) */}
+      {showNav && <BottomNav currentPath={location.pathname} onGo={(path) => navigate(path)} />}
     </div>
   );
 }
 
 export default function App() {
   const [profile, setProfile] = useState(() => localStorage.getItem("alf_profile"));
-
   const value = useMemo(() => ({ profile }), [profile]);
 
   return (
