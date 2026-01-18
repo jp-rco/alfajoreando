@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
+import { HashRouter, Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
 import LoginPage from "./pages/LoginPage.jsx";
 import HomePage from "./pages/HomePage.jsx";
 import SalesPage from "./pages/SalesPage.jsx";
@@ -66,11 +66,9 @@ function AppShell({ profile, setProfile }) {
           <Route path="*" element={<Navigate to={profile ? "/home" : "/login"} replace />} />
         </Routes>
 
-        {/* Spacer for mobile bottom nav */}
         {showNav && <div className="bottomnav-spacer" />}
       </div>
 
-      {/* Bottom nav (visible only on mobile via CSS) */}
       {showNav && <BottomNav currentPath={location.pathname} onGo={(path) => navigate(path)} />}
     </div>
   );
@@ -81,8 +79,8 @@ export default function App() {
   const value = useMemo(() => ({ profile }), [profile]);
 
   return (
-    <BrowserRouter>
+    <HashRouter>
       <AppShell profile={value.profile} setProfile={setProfile} />
-    </BrowserRouter>
+    </HashRouter>
   );
 }
