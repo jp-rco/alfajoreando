@@ -17,8 +17,8 @@ const DEFAULTS = {
   unitPrice: 4500,
   boxCost: 188000,
   boxesPurchased: 0,
-  allFlavors: ["Arequipe", "Chocolate", "Frutos rojos", "Coco"],
-  enabledFlavors: ["Arequipe", "Chocolate", "Frutos rojos", "Coco"],
+  allFlavors: ["Snickers", "Red Velvet", "Limón", "Maracuyá", "Snowreo"],
+  enabledFlavors: ["Snickers", "Red Velvet", "Limón", "Maracuyá", "Snowreo"],
 };
 
 function money(n) {
