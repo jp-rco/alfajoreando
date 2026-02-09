@@ -23,7 +23,11 @@ const DEFAULTS = {
 
 function money(n) {
   const v = Number(n || 0);
-  return v.toLocaleString("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 });
+  return v.toLocaleString("es-CO", {
+    style: "currency",
+    currency: "COP",
+    maximumFractionDigits: 0,
+  });
 }
 
 export default function HomePage({ profile }) {
@@ -44,7 +48,9 @@ export default function HomePage({ profile }) {
     })();
   }, []);
 
-  useEffect(() => onSnapshot(doc(db, "settings", "app"), (snap) => setSettings(snap.data() || null)), []);
+  useEffect(() => {
+    return onSnapshot(doc(db, "settings", "app"), (snap) => setSettings(snap.data() || null));
+  }, []);
 
   useEffect(() => {
     const ref = doc(db, "inventory", "current");
@@ -58,7 +64,9 @@ export default function HomePage({ profile }) {
     })();
   }, []);
 
-  useEffect(() => onSnapshot(doc(db, "inventory", "current"), (snap) => setInventory(snap.data() || null)), []);
+  useEffect(() => {
+    return onSnapshot(doc(db, "inventory", "current"), (snap) => setInventory(snap.data() || null));
+  }, []);
 
   const unitPrice = settings?.unitPrice ?? DEFAULTS.unitPrice;
   const enabledFlavors = useMemo(() => settings?.enabledFlavors || [], [settings]);
@@ -185,7 +193,10 @@ export default function HomePage({ profile }) {
     const currEnabled = settings?.enabledFlavors || [];
     if (currAll.includes(clean)) return;
 
-    await updateDoc(ref, { allFlavors: [...currAll, clean], enabledFlavors: [...currEnabled, clean] });
+    await updateDoc(ref, {
+      allFlavors: [...currAll, clean],
+      enabledFlavors: [...currEnabled, clean],
+    });
 
     const invRef = doc(db, "inventory", "current");
     const invSnap = await getDoc(invRef);
@@ -227,58 +238,50 @@ export default function HomePage({ profile }) {
               />
             );
           })}
-          {enabledFlavors.length === 0 && (
-            <div className="small">
-              No hay sabores visibles. Presiona <strong>Editar sabores</strong>.
+        </div>
+
+        <div className="spacer" />
+
+        {/* RESUMEN DE VENTA (DEBAJO, NO STICKY) */}
+        <div className="card">
+          <div className="label">Propina (opcional, se guarda aparte)</div>
+          <input
+            className="input"
+            placeholder="Ej: 2000"
+            value={tip}
+            onChange={(e) => setTip(e.target.value)}
+          />
+
+          <div className="spacer" />
+
+          <div className="kpi-grid">
+            <div className="kpi">
+              <div className="kpi-title">Seleccionados</div>
+              <div className="kpi-value">{totalQty}</div>
+            </div>
+            <div className="kpi">
+              <div className="kpi-title">Total venta</div>
+              <div className="kpi-value">{money(totalValue)}</div>
+            </div>
+            <div className="kpi">
+              <div className="kpi-title">Perfil</div>
+              <div className="kpi-value">{profile}</div>
+            </div>
+          </div>
+
+          <div className="spacer" />
+
+          <button className="btn" onClick={sell} disabled={!canSell || saving}>
+            {saving ? "Vendiendo..." : "Vender"}
+          </button>
+
+          {!canSell && totalQty > 0 && (
+            <div className="small" style={{ marginTop: 10 }}>
+              ⚠️ Revisa inventario: hay sabores con cantidad mayor a lo disponible.
             </div>
           )}
         </div>
-
-        {/* Sticky bottom CTA area (inside card) */}
-        <div className="sticky-cta">
-          <div className="spacer" />
-
-          <div className="card">
-            <div className="label">Propina (opcional, se guarda aparte)</div>
-            <input
-              className="input"
-              placeholder="Ej: 2000"
-              value={tip}
-              onChange={(e) => setTip(e.target.value)}
-            />
-
-            <div className="spacer" />
-
-            <div className="kpi-grid">
-              <div className="kpi">
-                <div className="kpi-title">Seleccionados</div>
-                <div className="kpi-value">{totalQty}</div>
-              </div>
-              <div className="kpi">
-                <div className="kpi-title">Total venta</div>
-                <div className="kpi-value">{money(totalValue)}</div>
-              </div>
-              <div className="kpi">
-                <div className="kpi-title">Perfil</div>
-                <div className="kpi-value">{profile}</div>
-              </div>
-            </div>
-
-            <div className="spacer" />
-            <button className="btn" onClick={sell} disabled={!canSell || saving}>
-              {saving ? "Vendiendo..." : "Vender"}
-            </button>
-
-            {!canSell && totalQty > 0 && (
-              <div className="small" style={{ marginTop: 10 }}>
-                ⚠️ Revisa inventario: hay sabores con cantidad mayor a lo disponible.
-              </div>
-            )}
-          </div>
-        </div>
       </div>
-
-      {/* Side card becomes second section on mobile (still nice) */}
 
       <EditFlavorsModal
         isOpen={isEditOpen}
