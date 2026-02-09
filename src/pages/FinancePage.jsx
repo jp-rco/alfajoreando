@@ -1,6 +1,13 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { db } from "../firebase.js";
-import { doc, onSnapshot, collection, query, orderBy, updateDoc } from "firebase/firestore";
+import {
+  doc,
+  onSnapshot,
+  collection,
+  query,
+  orderBy,
+  updateDoc,
+} from "firebase/firestore";
 
 function money(n) {
   const v = Number(n || 0);
@@ -15,19 +22,38 @@ function sumField(list, field) {
   return (list || []).reduce((acc, x) => acc + (Number(x?.[field]) || 0), 0);
 }
 
+function sumSalesQty(list) {
+  return (list || []).reduce((acc, x) => acc + (Number(x?.qty) || 0), 0);
+}
+
+function sumInventoryCounts(countsObj) {
+  const counts = countsObj || {};
+  return Object.values(counts).reduce((acc, v) => acc + (Number(v) || 0), 0);
+}
+
 export default function FinancePage() {
   const [settings, setSettings] = useState(null);
+
+  const [inventory, setInventory] = useState(null);
 
   const [jpSales, setJpSales] = useState([]);
   const [pauSales, setPauSales] = useState([]);
   const [jpTips, setJpTips] = useState([]);
   const [pauTips, setPauTips] = useState([]);
 
+  // Settings
   useEffect(() => {
     const ref = doc(db, "settings", "app");
     return onSnapshot(ref, (snap) => setSettings(snap.data() || null));
   }, []);
 
+  // Inventory
+  useEffect(() => {
+    const ref = doc(db, "inventory", "current");
+    return onSnapshot(ref, (snap) => setInventory(snap.data() || null));
+  }, []);
+
+  // Sales & Tips
   useEffect(() => {
     const s1 = onSnapshot(
       query(collection(db, "profiles", "JP", "sales"), orderBy("createdAt", "desc")),
@@ -55,61 +81,105 @@ export default function FinancePage() {
     };
   }, []);
 
-  // Settings
+  // Settings values
   const unitPrice = settings?.unitPrice ?? 4500;
   const boxCost = settings?.boxCost ?? 188000;
   const boxesPurchased = settings?.boxesPurchased ?? 0;
 
-  // Revenue and tips by profile
+  // Revenue & tips by profile
   const jpRevenue = useMemo(() => sumField(jpSales, "total"), [jpSales]);
   const pauRevenue = useMemo(() => sumField(pauSales, "total"), [pauSales]);
 
   const jpTipsTotal = useMemo(() => sumField(jpTips, "amount"), [jpTips]);
   const pauTipsTotal = useMemo(() => sumField(pauTips, "amount"), [pauTips]);
 
-  // Totals
-  const revenueTotal = jpRevenue + pauRevenue;          // ventas
-  const tipsTotal = jpTipsTotal + pauTipsTotal;         // propinas
-  const grossTotal = revenueTotal + tipsTotal;          // ventas + propinas
+  // Total sold qty (JP + Pau)
+  const soldQtyTotal = useMemo(() => sumSalesQty(jpSales) + sumSalesQty(pauSales), [jpSales, pauSales]);
 
-  const costs = boxesPurchased * boxCost;               // costos totales
-  const netToSplit = grossTotal - costs;                // lo que queda para repartir
+  // Remaining qty from inventory
+  const remainingQtyTotal = useMemo(() => sumInventoryCounts(inventory?.counts), [inventory]);
 
-  // Split equally regardless of who sold more
+  // Total alfajores = sold + remaining (BD)
+  const totalAlfajoresBD = soldQtyTotal + remainingQtyTotal;
+
+  // Totals money
+  const revenueTotal = jpRevenue + pauRevenue;   // ventas
+  const tipsTotal = jpTipsTotal + pauTipsTotal;  // propinas
+  const grossTotal = revenueTotal + tipsTotal;   // ventas + propinas
+
+  const costs = boxesPurchased * boxCost;
+  const netToSplit = grossTotal - costs;
+
   const splitEach = netToSplit / 2;
-
-  // Optional: show if negative (so they know they "van debiendo")
   const netLabel = netToSplit >= 0 ? "Neto a repartir" : "Neto (negativo) a repartir";
 
+  // Update boxesPurchased
   const updateBoxes = async (value) => {
     const num = Math.max(0, Number(value || 0));
     await updateDoc(doc(db, "settings", "app"), { boxesPurchased: num });
+  };
+
+  // ✅ Update boxCost (costo por caja)
+  const updateBoxCost = async (value) => {
+    const num = Math.max(0, Number(value || 0));
+    await updateDoc(doc(db, "settings", "app"), { boxCost: num });
   };
 
   return (
     <div className="card">
       <div className="h2">Finanzas</div>
       <p className="p-muted">
-        Precio unitario: <strong>{money(unitPrice)}</strong> • Costo por caja:{" "}
-        <strong>{money(boxCost)}</strong>.
+        Precio unitario: <strong>{money(unitPrice)}</strong>
       </p>
+
+      <div className="spacer" />
+
+      {/* ✅ MISMO RENGLÓN: editar costo caja + total alfajores BD */}
+      <div className="card">
+        <div className="row" style={{ alignItems: "flex-end", justifyContent: "space-between", gap: 12 }}>
+          <div style={{ flex: 1, minWidth: 180 }}>
+            <div className="label">Costo por caja</div>
+            <input
+              className="input"
+              type="number"
+              min="0"
+              value={boxCost}
+              onChange={(e) => updateBoxCost(e.target.value)}
+            />
+          </div>
+
+          <div style={{ flex: 1, minWidth: 180 }}>
+            <div className="label">Cajas compradas</div>
+            <input
+              className="input"
+              type="number"
+              min="0"
+              value={boxesPurchased}
+              onChange={(e) => updateBoxes(e.target.value)}
+            />
+          </div>
+
+          <div style={{ flex: 1, minWidth: 180 }}>
+            <div className="kpi">
+              <div className="kpi-title">Total alfajores (BD)</div>
+              <div className="kpi-value">{totalAlfajoresBD}</div>
+              <div className="small">
+                Vendidos: <strong>{soldQtyTotal}</strong> • Restantes: <strong>{remainingQtyTotal}</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="small" style={{ marginTop: 10 }}>
+          Total alfajores = (restantes en inventario) + (vendidos en ventas).
+        </div>
+      </div>
 
       <div className="spacer" />
 
       <div className="grid">
         {/* LEFT */}
         <div className="card">
-          <div className="label">Cajas compradas (para calcular costos)</div>
-          <input
-            className="input"
-            type="number"
-            min="0"
-            value={boxesPurchased}
-            onChange={(e) => updateBoxes(e.target.value)}
-          />
-
-          <div className="spacer" />
-
           <div className="kpi-grid">
             <div className="kpi">
               <div className="kpi-title">Ingresos (ventas)</div>
@@ -159,7 +229,7 @@ export default function FinancePage() {
 
             {netToSplit < 0 && (
               <div className="small" style={{ marginTop: 10 }}>
-                ⚠️ El neto es negativo: con los costos actuales, aún no se cubren. Ese valor quedaría “en rojo”.
+                ⚠️ El neto es negativo: con los costos actuales, aún no se cubren.
               </div>
             )}
           </div>
@@ -178,12 +248,16 @@ export default function FinancePage() {
             <div className="kpi">
               <div className="kpi-title">JP • Ingresos</div>
               <div className="kpi-value">{money(jpRevenue)}</div>
-              <div className="small">Propinas JP: <strong>{money(jpTipsTotal)}</strong></div>
+              <div className="small">
+                Propinas JP: <strong>{money(jpTipsTotal)}</strong>
+              </div>
             </div>
             <div className="kpi">
               <div className="kpi-title">Pau • Ingresos</div>
               <div className="kpi-value">{money(pauRevenue)}</div>
-              <div className="small">Propinas Pau: <strong>{money(pauTipsTotal)}</strong></div>
+              <div className="small">
+                Propinas Pau: <strong>{money(pauTipsTotal)}</strong>
+              </div>
             </div>
             <div className="kpi">
               <div className="kpi-title">Total (ventas + propinas)</div>
