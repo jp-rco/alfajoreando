@@ -10,27 +10,37 @@ import TopNav from "./components/TopNav.jsx";
 
 function BottomNav({ currentPath, onGo }) {
   return (
-    <div className="bottomnav" role="navigation" aria-label="Navegación">
+    <div className="bottomnav" role="navigation">
       <div className="bottomnav-inner">
         <button className={`tabbtn ${currentPath === "/home" ? "active" : ""}`} onClick={() => onGo("/home")}>
-          🧾 <strong>Principal</strong>
+          <span>🧾</span>
+          <strong>Principal</strong>
         </button>
+
         <button className={`tabbtn ${currentPath === "/ventas" ? "active" : ""}`} onClick={() => onGo("/ventas")}>
-          📦 <strong>Ventas</strong>
+          <span>📦</span>
+          <strong>Ventas</strong>
         </button>
+
         <button className={`tabbtn ${currentPath === "/finanzas" ? "active" : ""}`} onClick={() => onGo("/finanzas")}>
-          💰 <strong>Finanzas</strong>
+          <span>💰</span>
+          <strong>Finanzas</strong>
         </button>
+
         <button className={`tabbtn ${currentPath === "/inventario" ? "active" : ""}`} onClick={() => onGo("/inventario")}>
-          🧮 <strong>Inventario</strong>
+          <span>🧮</span>
+          <strong>Inventario</strong>
         </button>
+
         <button className={`tabbtn ${currentPath === "/historial" ? "active" : ""}`} onClick={() => onGo("/historial")}>
-          🕘 <strong>Historial</strong>
+          <span>🕘</span>
+          <strong>Historial</strong>
         </button>
       </div>
     </div>
   );
 }
+
 
 function AppShell({ profile, setProfile }) {
   const location = useLocation();
