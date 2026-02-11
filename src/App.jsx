@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { HashRouter, Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
 import LoginPage from "./pages/LoginPage.jsx";
 import HomePage from "./pages/HomePage.jsx";
 import SalesPage from "./pages/SalesPage.jsx";
 import FinancePage from "./pages/FinancePage.jsx";
 import InventoryPage from "./pages/InventoryPage.jsx";
+import HistoryPage from "./pages/HistoryPage.jsx";
 import TopNav from "./components/TopNav.jsx";
 
 function BottomNav({ currentPath, onGo }) {
@@ -22,6 +23,9 @@ function BottomNav({ currentPath, onGo }) {
         </button>
         <button className={`tabbtn ${currentPath === "/inventario" ? "active" : ""}`} onClick={() => onGo("/inventario")}>
           🧮 <strong>Inventario</strong>
+        </button>
+        <button className={`tabbtn ${currentPath === "/historial" ? "active" : ""}`} onClick={() => onGo("/historial")}>
+          🕘 <strong>Historial</strong>
         </button>
       </div>
     </div>
@@ -63,6 +67,7 @@ function AppShell({ profile, setProfile }) {
           <Route path="/ventas" element={<SalesPage />} />
           <Route path="/finanzas" element={<FinancePage />} />
           <Route path="/inventario" element={<InventoryPage />} />
+          <Route path="/historial" element={<HistoryPage />} />
           <Route path="*" element={<Navigate to={profile ? "/home" : "/login"} replace />} />
         </Routes>
 
@@ -79,8 +84,8 @@ export default function App() {
   const value = useMemo(() => ({ profile }), [profile]);
 
   return (
-    <HashRouter>
+    <BrowserRouter>
       <AppShell profile={value.profile} setProfile={setProfile} />
-    </HashRouter>
+    </BrowserRouter>
   );
 }

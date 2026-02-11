@@ -25,6 +25,9 @@ export default function TopNav({ profile, onLogout, onGo, currentPath }) {
           <button className={`navbtn ${currentPath === "/inventario" ? "active" : ""}`} onClick={() => onGo("/inventario")}>
             Inventario
           </button>
+          <button className={`navbtn ${currentPath === "/historial" ? "active" : ""}`} onClick={() => onGo("/historial")}>
+            Historial
+          </button>
           <button className="navbtn danger" onClick={onLogout}>
             Salir
           </button>
