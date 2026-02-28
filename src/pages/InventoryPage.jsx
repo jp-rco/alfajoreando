@@ -67,7 +67,7 @@ export default function InventoryPage() {
   };
 
   return (
-    <div className="card">
+    <div className="card animate-fade-in-up">
       <div className="h2">Inventario</div>
       <p className="p-muted">
         Aquí defines cuántos alfajores llegaron por sabor. Se actualiza la pestaña Principal automáticamente.

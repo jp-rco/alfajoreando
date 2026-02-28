@@ -207,7 +207,7 @@ export default function HomePage({ profile }) {
   };
 
   return (
-    <div className="grid">
+    <div className="grid animate-fade-in-up">
       <div className="card">
         <div className="row" style={{ justifyContent: "space-between" }}>
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -222,7 +222,8 @@ export default function HomePage({ profile }) {
         <div className="spacer" />
 
         <div className="flavor-list">
-          {enabledFlavors.map((flavor) => {
+          {enabledFlavors.map((flavor, i) => {
+            const delayClass = `delay-${Math.min(i + 1, 8)}`;
             const remaining = Number(counts[flavor] || 0);
             const qty = Number(quantities[flavor] || 0);
             return (
@@ -235,6 +236,7 @@ export default function HomePage({ profile }) {
                 onPlus={() => onPlus(flavor)}
                 disabledMinus={qty <= 0}
                 disabledPlus={qty >= remaining}
+                delayClass={delayClass}
               />
             );
           })}

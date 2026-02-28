@@ -126,7 +126,7 @@ export default function FinancePage() {
   };
 
   return (
-    <div className="card">
+    <div className="card animate-fade-in-up">
       <div className="h2">Finanzas</div>
       <p className="p-muted">
         Precio unitario: <strong>{money(unitPrice)}</strong>

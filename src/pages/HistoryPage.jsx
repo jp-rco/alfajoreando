@@ -130,7 +130,7 @@ export default function HistoryPage() {
   };
 
   return (
-    <div className="card">
+    <div className="card animate-fade-in-up">
       <div className="h2">Historial</div>
       <p className="p-muted">
         Ventas agrupadas por día. Puedes eliminar una venta (se borra de Firestore y se devuelve al inventario).
@@ -162,31 +162,34 @@ export default function HistoryPage() {
                 </summary>
 
                 <div className="history-list">
-                  {salesOfDay.map((s) => (
-                    <div className="history-item" key={`${s.profile}-${s.id}`}>
-                      <div className="history-item-left">
-                        <div className="history-row1">
-                          <span className="history-time">{timeLabel(s._date)}</span>
-                          <span className="history-pill">{s.profile}</span>
+                  {salesOfDay.map((s, i) => {
+                    const delayClass = `delay-${Math.min(i + 1, 8)}`;
+                    return (
+                      <div className={`history-item animate-enter ${delayClass}`} key={`${s.profile}-${s.id}`}>
+                        <div className="history-item-left">
+                          <div className="history-row1">
+                            <span className="history-time">{timeLabel(s._date)}</span>
+                            <span className="history-pill">{s.profile}</span>
+                          </div>
+                          <div className="history-row2">
+                            <strong>{s.flavor}</strong> • {Number(s.qty || 0)} unidad(es)
+                          </div>
                         </div>
-                        <div className="history-row2">
-                          <strong>{s.flavor}</strong> • {Number(s.qty || 0)} unidad(es)
-                        </div>
-                      </div>
 
-                      <div className="history-item-right">
-                        <div className="history-price">{money(s.total)}</div>
-                        <button
-                          className="btn secondary"
-                          style={{ minHeight: 44, padding: "10px 12px" }}
-                          onClick={() => deleteSale(s)}
-                          disabled={deletingId === s.id}
-                        >
-                          {deletingId === s.id ? "Eliminando..." : "Eliminar"}
-                        </button>
+                        <div className="history-item-right">
+                          <div className="history-price">{money(s.total)}</div>
+                          <button
+                            className="btn secondary"
+                            style={{ minHeight: 44, padding: "10px 12px" }}
+                            onClick={() => deleteSale(s)}
+                            disabled={deletingId === s.id}
+                          >
+                            {deletingId === s.id ? "Eliminando..." : "Eliminar"}
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </details>
             );

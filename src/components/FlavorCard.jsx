@@ -1,8 +1,8 @@
 import React from "react";
 
-export default function FlavorCard({ name, remaining, qty, onMinus, onPlus, disabledMinus, disabledPlus }) {
+export default function FlavorCard({ name, remaining, qty, onMinus, onPlus, disabledMinus, disabledPlus, delayClass }) {
   return (
-    <div className="flavor-item">
+    <div className={`flavor-item animate-enter ${delayClass || ""}`}>
       <div className="flavor-left">
         <div className="flavor-name">{name}</div>
         <div className="flavor-stock">Quedan: <strong>{remaining ?? 0}</strong></div>

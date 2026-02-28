@@ -11,7 +11,7 @@ export default function LoginPage({ setProfile }) {
   };
 
   return (
-    <div className="container">
+    <div className="container animate-fade-in-up">
       <div className="card" style={{ maxWidth: 520, margin: "36px auto" }}>
         <div className="h2">Ingresar</div>
         <p className="p-muted">

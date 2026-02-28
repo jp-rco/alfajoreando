@@ -48,7 +48,7 @@ export default function SalesPage() {
   const unitPrice = settings?.unitPrice ?? 4500;
 
   return (
-    <div className="grid">
+    <div className="grid animate-fade-in-up">
       <div className="card">
         <div className="h2">Ventas • JP</div>
         <p className="p-muted">Resumen por sabor (precio unitario actual: {money(unitPrice)}).</p>

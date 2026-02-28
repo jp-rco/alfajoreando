@@ -42,10 +42,18 @@ code{ color: var(--c5); }
 }
 
 .card{
-  background: linear-gradient(180deg, rgba(255,255,255,0.055), rgba(255,255,255,0.03));
+  background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 14px;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.4);
 }
 
 .h2{ margin:0 0 4px; font-size: 18px; }
@@ -67,21 +75,32 @@ code{ color: var(--c5); }
   color: var(--text);
   outline: none;
   font-size: 16px; /* prevents iOS zoom */
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+.input:focus, .select:focus {
+  border-color: rgba(255, 158, 162, 0.5);
+  background: rgba(0,0,0,0.4);
+  box-shadow: 0 0 0 3px rgba(220, 20, 60, 0.15);
 }
 
 .btn{
   min-height: var(--tap);
   border: 1px solid rgba(255,158,162,0.22);
-  background: linear-gradient(135deg, rgba(220,20,60,0.35), rgba(156,7,32,0.22));
+  background: linear-gradient(135deg, rgba(220,20,60,0.45), rgba(156,7,32,0.32));
   color: var(--text);
   padding: 12px 14px;
   border-radius: 16px;
   cursor:pointer;
-  transition: transform .08s ease, filter .15s ease;
+  transition: all .2s cubic-bezier(0.2, 0.8, 0.2, 1);
   width: 100%;
+  box-shadow: 0 4px 15px rgba(220,20,60,0.2);
 }
-.btn:hover{ filter: brightness(1.07); }
-.btn:active{ transform: scale(0.985); }
+.btn:hover{ 
+  filter: brightness(1.15); 
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(220,20,60,0.3);
+}
+.btn:active{ transform: scale(0.97); }
 .btn.secondary{
   background: rgba(255,255,255,0.05);
 }
@@ -130,7 +149,14 @@ code{ color: var(--c5); }
   padding: 12px;
   border-radius: 18px;
   border: 1px solid var(--border);
-  background: rgba(0,0,0,0.18);
+  background: rgba(255,255,255,0.03);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+.flavor-item:hover {
+  background: rgba(255,255,255,0.06);
+  transform: translateY(-1px);
 }
 
 .flavor-left{
@@ -162,6 +188,13 @@ code{ color: var(--c5); }
   color: var(--text);
   cursor:pointer;
   font-size: 18px;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+.counter .mini:hover {
+  background: rgba(255,255,255,0.1);
+}
+.counter .mini:active {
+  transform: scale(0.92);
 }
 .counter .num{
   width: 46px;
@@ -190,7 +223,14 @@ code{ color: var(--c5); }
   padding: 14px;
   border-radius: 18px;
   border: 1px solid var(--border);
-  background: rgba(0,0,0,0.18);
+  background: rgba(255,255,255,0.03);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+  transition: transform 0.2s ease;
+}
+.kpi:hover {
+  transform: translateY(-2px);
 }
 .kpi .kpi-title{ font-size: 12px; color: var(--muted); }
 .kpi .kpi-value{ font-size: 18px; font-weight: 900; margin-top: 6px; }
@@ -212,10 +252,13 @@ code{ color: var(--c5); }
   overflow: auto;
   border-radius: 20px;
   border: 1px solid var(--border);
-  background: #120d0f;
+  background: rgba(18, 13, 15, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   box-shadow: 0 30px 80px rgba(0,0,0,0.55);
   padding: 14px;
   -webkit-overflow-scrolling: touch;
+  animation: fadeInScale 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
 }
 @media (min-width: 900px){
   .modal-backdrop{ align-items:center; }
@@ -459,3 +502,46 @@ code{ color: var(--c5); }
 .history-price{
   font-weight: 900;
 }
+
+/* --- ANIMATIONS --- */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-fade-in-up {
+  opacity: 0;
+  animation: fadeInUp 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+.animate-enter {
+  opacity: 0;
+  animation: fadeInUp 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+/* Staggered animation delays for lists */
+.delay-1 { animation-delay: 0.05s; }
+.delay-2 { animation-delay: 0.10s; }
+.delay-3 { animation-delay: 0.15s; }
+.delay-4 { animation-delay: 0.20s; }
+.delay-5 { animation-delay: 0.25s; }
+.delay-6 { animation-delay: 0.30s; }
+.delay-7 { animation-delay: 0.35s; }
+.delay-8 { animation-delay: 0.40s; }
