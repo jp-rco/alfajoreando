@@ -36,6 +36,7 @@ export default function HomePage({ profile }) {
 
   const [quantities, setQuantities] = useState({});
   const [tip, setTip] = useState("");
+  const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
 
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -157,6 +158,7 @@ export default function HomePage({ profile }) {
             qty,
             unitPrice,
             total,
+            notes: notes.trim(),
             createdAt: serverTimestamp(),
           });
         }
@@ -170,6 +172,7 @@ export default function HomePage({ profile }) {
 
       setQuantities((q) => Object.fromEntries(Object.keys(q).map((k) => [k, 0])));
       setTip("");
+      setNotes("");
     } catch (e) {
       alert(e?.message || "Error vendiendo. Revisa stock e intenta de nuevo.");
     } finally {
@@ -252,6 +255,17 @@ export default function HomePage({ profile }) {
             placeholder="Ej: 2000"
             value={tip}
             onChange={(e) => setTip(e.target.value)}
+          />
+
+          <div className="spacer" />
+
+          <div className="label">Notas adicionales (opcional)</div>
+          <textarea
+            className="input"
+            placeholder="Acá se pueden poner notas de la venta"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            style={{ minHeight: 60, resize: "vertical" }}
           />
 
           <div className="spacer" />

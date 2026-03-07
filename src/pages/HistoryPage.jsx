@@ -9,6 +9,7 @@ import {
   query,
   runTransaction,
   Timestamp,
+  updateDoc,
 } from "firebase/firestore";
 
 function money(n) {
@@ -52,6 +53,18 @@ export default function HistoryPage() {
   const [jpSales, setJpSales] = useState([]);
   const [pauSales, setPauSales] = useState([]);
   const [deletingId, setDeletingId] = useState(null);
+
+  const editNote = async (sale) => {
+    const newNote = prompt("Editar nota (deja vacío para eliminarla):", sale.notes || "");
+    if (newNote === null) return; // Cancelado por el usuario
+
+    try {
+      const saleRef = doc(db, "profiles", sale.profile, "sales", sale.id);
+      await updateDoc(saleRef, { notes: newNote.trim() });
+    } catch (e) {
+      alert("Error al actualizar la nota.");
+    }
+  };
 
   useEffect(() => {
     const qJP = query(collection(db, "profiles", "JP", "sales"), orderBy("createdAt", "desc"));
@@ -174,18 +187,32 @@ export default function HistoryPage() {
                           <div className="history-row2">
                             <strong>{s.flavor}</strong> • {Number(s.qty || 0)} unidad(es)
                           </div>
+                          {s.notes && (
+                            <div className="p-muted small" style={{ marginTop: 6, fontStyle: "italic" }}>
+                              Nota: {s.notes}
+                            </div>
+                          )}
                         </div>
 
                         <div className="history-item-right">
                           <div className="history-price">{money(s.total)}</div>
-                          <button
-                            className="btn secondary"
-                            style={{ minHeight: 44, padding: "10px 12px" }}
-                            onClick={() => deleteSale(s)}
-                            disabled={deletingId === s.id}
-                          >
-                            {deletingId === s.id ? "Eliminando..." : "Eliminar"}
-                          </button>
+                          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                            <button
+                              className="btn secondary"
+                              style={{ minHeight: 36, padding: "6px 10px", fontSize: 13 }}
+                              onClick={() => editNote(s)}
+                            >
+                              Notas
+                            </button>
+                            <button
+                              className="btn secondary"
+                              style={{ minHeight: 36, padding: "6px 10px", fontSize: 13 }}
+                              onClick={() => deleteSale(s)}
+                              disabled={deletingId === s.id}
+                            >
+                              {deletingId === s.id ? "Eliminar..." : "Eliminar"}
+                            </button>
+                          </div>
                         </div>
                       </div>
                     );
