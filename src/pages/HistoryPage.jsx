@@ -53,6 +53,7 @@ export default function HistoryPage() {
   const [jpSales, setJpSales] = useState([]);
   const [pauSales, setPauSales] = useState([]);
   const [deletingId, setDeletingId] = useState(null);
+  const [activeTab, setActiveTab] = useState("historial");
 
   const editNote = async (sale) => {
     const newNote = prompt("Editar nota (deja vacío para eliminarla):", sale.notes || "");
@@ -93,6 +94,10 @@ export default function HistoryPage() {
       .sort((a, b) => b._date - a._date);
     return merged;
   }, [jpSales, pauSales]);
+
+  const salesWithNotes = useMemo(() => {
+    return allSales.filter((s) => s.notes && s.notes.trim().length > 0);
+  }, [allSales]);
 
   const grouped = useMemo(() => {
     const map = new Map(); // key -> array
@@ -144,84 +149,158 @@ export default function HistoryPage() {
 
   return (
     <div className="card animate-fade-in-up">
-      <div className="h2">Historial</div>
-      <p className="p-muted">
-        Ventas agrupadas por día. Puedes eliminar una venta (se borra de Firestore y se devuelve al inventario).
-      </p>
+      <div style={{ display: "flex", gap: "10px", marginBottom: "20px" }}>
+        <button
+          className={`btn ${activeTab === "historial" ? "primary" : "secondary"}`}
+          style={{ flex: 1 }}
+          onClick={() => setActiveTab("historial")}
+        >
+          Historial
+        </button>
+        <button
+          className={`btn ${activeTab === "notas" ? "primary" : "secondary"}`}
+          style={{ flex: 1 }}
+          onClick={() => setActiveTab("notas")}
+        >
+          Notas
+        </button>
+      </div>
 
-      <div className="spacer" />
+      {activeTab === "historial" && (
+        <>
+          <div className="h2">Historial</div>
+          <p className="p-muted">
+            Ventas agrupadas por día. Puedes eliminar una venta (se borra de Firestore y se devuelve al inventario).
+          </p>
 
-      {grouped.keys.length === 0 ? (
-        <div className="card">
-          <p className="p-muted">Aún no hay ventas registradas.</p>
-        </div>
-      ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {grouped.keys.map((key) => {
-            const salesOfDay = grouped.map.get(key) || [];
-            const dayQty = salesOfDay.reduce((acc, s) => acc + (Number(s.qty) || 0), 0);
-            const dayTotal = salesOfDay.reduce((acc, s) => acc + (Number(s.total) || 0), 0);
+          <div className="spacer" />
 
-            return (
-              <details key={key} className="history-day" open={false}>
-                <summary className="history-summary">
-                  <div className="history-summary-left">
-                    <div className="history-date">{dateLabelFromKey(key)}</div>
-                    <div className="history-meta">
-                      {dayQty} alfajor(es) • {money(dayTotal)}
-                    </div>
-                  </div>
-                  <div className="history-chevron">⌄</div>
-                </summary>
+          {grouped.keys.length === 0 ? (
+            <div className="card">
+              <p className="p-muted">Aún no hay ventas registradas.</p>
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {grouped.keys.map((key) => {
+                const salesOfDay = grouped.map.get(key) || [];
+                const dayQty = salesOfDay.reduce((acc, s) => acc + (Number(s.qty) || 0), 0);
+                const dayTotal = salesOfDay.reduce((acc, s) => acc + (Number(s.total) || 0), 0);
 
-                <div className="history-list">
-                  {salesOfDay.map((s, i) => {
-                    const delayClass = `delay-${Math.min(i + 1, 8)}`;
-                    return (
-                      <div className={`history-item animate-enter ${delayClass}`} key={`${s.profile}-${s.id}`}>
-                        <div className="history-item-left">
-                          <div className="history-row1">
-                            <span className="history-time">{timeLabel(s._date)}</span>
-                            <span className="history-pill">{s.profile}</span>
-                          </div>
-                          <div className="history-row2">
-                            <strong>{s.flavor}</strong> • {Number(s.qty || 0)} unidad(es)
-                          </div>
-                          {s.notes && (
-                            <div className="p-muted small" style={{ marginTop: 6, fontStyle: "italic" }}>
-                              Nota: {s.notes}
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="history-item-right">
-                          <div className="history-price">{money(s.total)}</div>
-                          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
-                            <button
-                              className="btn secondary"
-                              style={{ minHeight: 36, padding: "6px 10px", fontSize: 13 }}
-                              onClick={() => editNote(s)}
-                            >
-                              Notas
-                            </button>
-                            <button
-                              className="btn secondary"
-                              style={{ minHeight: 36, padding: "6px 10px", fontSize: 13 }}
-                              onClick={() => deleteSale(s)}
-                              disabled={deletingId === s.id}
-                            >
-                              {deletingId === s.id ? "Eliminar..." : "Eliminar"}
-                            </button>
-                          </div>
+                return (
+                  <details key={key} className="history-day" open={false}>
+                    <summary className="history-summary">
+                      <div className="history-summary-left">
+                        <div className="history-date">{dateLabelFromKey(key)}</div>
+                        <div className="history-meta">
+                          {dayQty} alfajor(es) • {money(dayTotal)}
                         </div>
                       </div>
-                    );
-                  })}
-                </div>
-              </details>
-            );
-          })}
-        </div>
+                      <div className="history-chevron">⌄</div>
+                    </summary>
+
+                    <div className="history-list">
+                      {salesOfDay.map((s, i) => {
+                        const delayClass = `delay-${Math.min(i + 1, 8)}`;
+                        return (
+                          <div className={`history-item animate-enter ${delayClass}`} key={`${s.profile}-${s.id}`}>
+                            <div className="history-item-left">
+                              <div className="history-row1">
+                                <span className="history-time">{timeLabel(s._date)}</span>
+                                <span className="history-pill">{s.profile}</span>
+                              </div>
+                              <div className="history-row2">
+                                <strong>{s.flavor}</strong> • {Number(s.qty || 0)} unidad(es)
+                              </div>
+                              {s.notes && (
+                                <div className="p-muted small" style={{ marginTop: 6, fontStyle: "italic" }}>
+                                  Nota: {s.notes}
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="history-item-right">
+                              <div className="history-price">{money(s.total)}</div>
+                              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                                <button
+                                  className="btn secondary"
+                                  style={{ minHeight: 36, padding: "6px 10px", fontSize: 13 }}
+                                  onClick={() => editNote(s)}
+                                >
+                                  Notas
+                                </button>
+                                <button
+                                  className="btn secondary"
+                                  style={{ minHeight: 36, padding: "6px 10px", fontSize: 13 }}
+                                  onClick={() => deleteSale(s)}
+                                  disabled={deletingId === s.id}
+                                >
+                                  {deletingId === s.id ? "Eliminar..." : "Eliminar"}
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </details>
+                );
+              })}
+            </div>
+          )}
+        </>
+      )}
+
+      {activeTab === "notas" && (
+        <>
+          <div className="h2">Notas</div>
+          <p className="p-muted">
+            Lista de todas las notas agregadas a las ventas.
+          </p>
+
+          <div className="spacer" />
+
+          {salesWithNotes.length === 0 ? (
+            <div className="card">
+              <p className="p-muted">Nadie ha agregado notas aún.</p>
+            </div>
+          ) : (
+            <div className="history-list">
+              {salesWithNotes.map((s, i) => {
+                const delayClass = `delay-${Math.min(i + 1, 8)}`;
+                const dtLabel = dateLabelFromKey(dateKey(s._date));
+                return (
+                  <div className={`history-item animate-enter ${delayClass}`} key={`${s.profile}-${s.id}`}>
+                    <div className="history-item-left">
+                      <div className="history-row1">
+                        <span className="history-time">{dtLabel} {timeLabel(s._date)}</span>
+                        <span className="history-pill">{s.profile}</span>
+                      </div>
+                      <div className="history-row2">
+                        <strong>{s.flavor}</strong> • {Number(s.qty || 0)} unidad(es)
+                      </div>
+                      <div className="p-muted small" style={{ marginTop: 6, fontStyle: "italic" }}>
+                        Nota: {s.notes}
+                      </div>
+                    </div>
+
+                    <div className="history-item-right">
+                      <div className="history-price">{money(s.total)}</div>
+                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                        <button
+                          className="btn secondary"
+                          style={{ minHeight: 36, padding: "6px 10px", fontSize: 13 }}
+                          onClick={() => editNote(s)}
+                        >
+                          Editar Nota
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </>
       )}
     </div>
   );
