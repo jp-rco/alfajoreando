@@ -15,8 +15,7 @@ import EditFlavorsModal from "../components/EditFlavorsModal.jsx";
 
 const DEFAULTS = {
   unitPrice: 4500,
-  boxCost: 188000,
-  boxesPurchased: 0,
+  totalCosts: 0,
   allFlavors: ["Snickers", "Red Velvet", "Limón", "Maracuyá", "Snowreo"],
   enabledFlavors: ["Snickers", "Red Velvet", "Limón", "Maracuyá", "Snowreo"],
 };

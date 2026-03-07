@@ -83,8 +83,7 @@ export default function FinancePage() {
 
   // Settings values
   const unitPrice = settings?.unitPrice ?? 4500;
-  const boxCost = settings?.boxCost ?? 188000;
-  const boxesPurchased = settings?.boxesPurchased ?? 0;
+  const totalCosts = settings?.totalCosts ?? 0;
 
   // Revenue & tips by profile
   const jpRevenue = useMemo(() => sumField(jpSales, "total"), [jpSales]);
@@ -107,22 +106,16 @@ export default function FinancePage() {
   const tipsTotal = jpTipsTotal + pauTipsTotal;  // propinas
   const grossTotal = revenueTotal + tipsTotal;   // ventas + propinas
 
-  const costs = boxesPurchased * boxCost;
+  const costs = totalCosts;
   const netToSplit = grossTotal - costs;
 
   const splitEach = netToSplit / 2;
   const netLabel = netToSplit >= 0 ? "Neto a repartir" : "Neto (negativo) a repartir";
 
-  // Update boxesPurchased
-  const updateBoxes = async (value) => {
+  // Update totalCosts
+  const updateTotalCosts = async (value) => {
     const num = Math.max(0, Number(value || 0));
-    await updateDoc(doc(db, "settings", "app"), { boxesPurchased: num });
-  };
-
-  // ✅ Update boxCost (costo por caja)
-  const updateBoxCost = async (value) => {
-    const num = Math.max(0, Number(value || 0));
-    await updateDoc(doc(db, "settings", "app"), { boxCost: num });
+    await updateDoc(doc(db, "settings", "app"), { totalCosts: num });
   };
 
   return (
@@ -138,24 +131,13 @@ export default function FinancePage() {
       <div className="card">
         <div className="row" style={{ alignItems: "flex-end", justifyContent: "space-between", gap: 12 }}>
           <div style={{ flex: 1, minWidth: 180 }}>
-            <div className="label">Costo por caja</div>
+            <div className="label">Costos Totales</div>
             <input
               className="input"
               type="number"
               min="0"
-              value={boxCost}
-              onChange={(e) => updateBoxCost(e.target.value)}
-            />
-          </div>
-
-          <div style={{ flex: 1, minWidth: 180 }}>
-            <div className="label">Cajas compradas</div>
-            <input
-              className="input"
-              type="number"
-              min="0"
-              value={boxesPurchased}
-              onChange={(e) => updateBoxes(e.target.value)}
+              value={totalCosts}
+              onChange={(e) => updateTotalCosts(e.target.value)}
             />
           </div>
 
