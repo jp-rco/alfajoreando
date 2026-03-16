@@ -12,6 +12,8 @@ import {
 } from "firebase/firestore";
 import FlavorCard from "../components/FlavorCard.jsx";
 import EditFlavorsModal from "../components/EditFlavorsModal.jsx";
+import DailyStockModal from "../components/DailyStockModal.jsx";
+import PaymentMethodModal from "../components/PaymentMethodModal.jsx";
 
 const DEFAULTS = {
   unitPrice: 4500,
@@ -32,6 +34,7 @@ function money(n) {
 export default function HomePage({ profile }) {
   const [settings, setSettings] = useState(null);
   const [inventory, setInventory] = useState(null);
+  const [dailyInventory, setDailyInventory] = useState(null);
 
   const [quantities, setQuantities] = useState({});
   const [tip, setTip] = useState("");
@@ -39,6 +42,9 @@ export default function HomePage({ profile }) {
   const [saving, setSaving] = useState(false);
 
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isDailyStockOpen, setIsDailyStockOpen] = useState(false);
+  const [isPaymentMenuOpen, setIsPaymentMenuOpen] = useState(false);
+  const [hasCheckedDaily, setHasCheckedDaily] = useState(false);
 
   useEffect(() => {
     const ref = doc(db, "settings", "app");
@@ -68,6 +74,57 @@ export default function HomePage({ profile }) {
     return onSnapshot(doc(db, "inventory", "current"), (snap) => setInventory(snap.data() || null));
   }, []);
 
+  useEffect(() => {
+    return onSnapshot(doc(db, "inventory", "daily"), (snap) => {
+      setDailyInventory(snap.exists() ? snap.data() : { date: "", JP: { counts: {} }, Pau: { counts: {} } });
+    });
+  }, []);
+
+  const otherProfile = profile === "JP" ? "Pau" : "JP";
+
+  useEffect(() => {
+    if (hasCheckedDaily) return;
+    if (!dailyInventory || !inventory || !settings) return;
+
+    const currentDate = new Date().toLocaleDateString('en-CA');
+    const dbDate = dailyInventory.date;
+    const myDaily = dailyInventory[profile]?.counts || null;
+
+    if (dbDate !== currentDate || !myDaily) {
+      setIsDailyStockOpen(true);
+    }
+    setHasCheckedDaily(true);
+  }, [dailyInventory, inventory, settings, hasCheckedDaily, profile]);
+
+  const saveDailyStock = async (countsMap) => {
+    setSaving(true);
+    try {
+      const currentDate = new Date().toLocaleDateString('en-CA');
+      
+      const isNewDate = dailyInventory?.date !== currentDate;
+      const updateData = {};
+
+      if (isNewDate) {
+        // Al empezar el día, escribimos la fecha y reiniciamos todo,
+        // pero solo inicializamos a 0 el del *otro* usuario,
+        // y guardamos lo que asigne el usuario actual.
+        updateData.date = currentDate;
+        updateData[profile] = { counts: countsMap };
+        updateData[otherProfile] = { counts: {} }; // El otro perfil arranca vacío
+      } else {
+        // En el mismo día, solo mezclamos lo correspondiente a este usuario
+        updateData[profile] = { counts: countsMap };
+      }
+
+      await setDoc(doc(db, "inventory", "daily"), updateData, { merge: true });
+      setIsDailyStockOpen(false);
+    } catch (e) {
+      alert("Error guardando stock diario.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const unitPrice = settings?.unitPrice ?? DEFAULTS.unitPrice;
   const enabledFlavors = useMemo(() => settings?.enabledFlavors || [], [settings]);
   const allFlavors = useMemo(() => settings?.allFlavors || [], [settings]);
@@ -93,19 +150,33 @@ export default function HomePage({ profile }) {
   const totalValue = useMemo(() => totalQty * unitPrice, [totalQty, unitPrice]);
 
   const counts = inventory?.counts || {};
+  
+  const currentDate = new Date().toLocaleDateString('en-CA');
+  const isToday = dailyInventory?.date === currentDate;
+  
+  const myCounts = isToday ? (dailyInventory?.[profile]?.counts || {}) : {};
+  const otherCounts = isToday ? (dailyInventory?.[otherProfile]?.counts || {}) : {};
+
+  const visibleFlavors = useMemo(() => {
+    return allFlavors.filter((f) => {
+      const myHave = Number(myCounts[f] || 0);
+      const otherHave = Number(otherCounts[f] || 0);
+      return myHave > 0 || otherHave > 0;
+    });
+  }, [allFlavors, myCounts, otherCounts]);
 
   const canSell = useMemo(() => {
     if (totalQty <= 0) return false;
-    for (const f of enabledFlavors) {
+    for (const f of visibleFlavors) {
       const want = Number(quantities[f] || 0);
-      const have = Number(counts[f] || 0);
+      const have = Number(myCounts[f] || 0);
       if (want > have) return false;
     }
     return true;
-  }, [enabledFlavors, quantities, counts, totalQty]);
+  }, [visibleFlavors, quantities, myCounts, totalQty]);
 
   const onPlus = (flavor) => {
-    const have = Number(counts?.[flavor] || 0);
+    const have = Number(myCounts?.[flavor] || 0);
     setQuantities((q) => {
       const current = Number(q[flavor] || 0);
       if (current + 1 > have) return q;
@@ -120,10 +191,11 @@ export default function HomePage({ profile }) {
     });
   };
 
-  const sell = async () => {
+  const sell = async (method) => {
     if (!canSell) return;
 
     setSaving(true);
+    setIsPaymentMenuOpen(false);
     const safeTip = Number(String(tip).replaceAll(".", "").replaceAll(",", ".")) || 0;
 
     try {
@@ -132,21 +204,33 @@ export default function HomePage({ profile }) {
         const invSnap = await tx.get(invRef);
         const dbCounts = invSnap.data()?.counts || {};
 
-        for (const f of enabledFlavors) {
+        const dailyRef = doc(db, "inventory", "daily");
+        const dailySnap = await tx.get(dailyRef);
+        const dailyDbData = dailySnap.data() || {};
+        const dailyDbMyCounts = dailyDbData[profile]?.counts || {};
+
+        for (const f of visibleFlavors) {
           const want = Number(quantities[f] || 0);
-          const have = Number(dbCounts[f] || 0);
-          if (want > have) throw new Error(`Stock insuficiente para ${f}`);
+          const haveWarehouse = Number(dbCounts[f] || 0);
+          const haveDaily = Number(dailyDbMyCounts[f] || 0);
+          if (want > haveDaily) throw new Error(`Stock diario insuficiente para ${f}`);
+          if (want > haveWarehouse) throw new Error(`Stock bodega insuficiente para ${f}`);
         }
 
         const newCounts = { ...dbCounts };
-        for (const f of enabledFlavors) {
+        const newDailyMyCounts = { ...dailyDbMyCounts };
+        for (const f of visibleFlavors) {
           const want = Number(quantities[f] || 0);
-          if (want > 0) newCounts[f] = Number(newCounts[f] || 0) - want;
+          if (want > 0) {
+             newCounts[f] = Number(newCounts[f] || 0) - want;
+             newDailyMyCounts[f] = Number(newDailyMyCounts[f] || 0) - want;
+          }
         }
         tx.update(invRef, { counts: newCounts });
+        tx.set(dailyRef, { [profile]: { counts: newDailyMyCounts } }, { merge: true });
 
         const salesCol = collection(db, "profiles", profile, "sales");
-        for (const f of enabledFlavors) {
+        for (const f of visibleFlavors) {
           const qty = Number(quantities[f] || 0);
           if (qty <= 0) continue;
 
@@ -157,6 +241,7 @@ export default function HomePage({ profile }) {
             qty,
             unitPrice,
             total,
+            method: method, // "Efectivo" or "Transferencia"
             notes: notes.trim(),
             createdAt: serverTimestamp(),
           });
@@ -216,32 +301,48 @@ export default function HomePage({ profile }) {
             <div className="h2">Principal</div>
             <p className="p-muted">Alfajores • Ajusta cantidades por sabor y vende.</p>
           </div>
-          <button className="btn secondary" onClick={() => setIsEditOpen(true)}>
-            Editar sabores
-          </button>
+          <div style={{ display: "flex", gap: "10px" }}>
+            <button className="btn outline" onClick={() => setIsDailyStockOpen(true)}>
+              Stock Diario
+            </button>
+            <button className="btn secondary" onClick={() => setIsEditOpen(true)}>
+              Editar sabores
+            </button>
+          </div>
         </div>
 
         <div className="spacer" />
 
         <div className="flavor-list">
-          {enabledFlavors.map((flavor, i) => {
+          {visibleFlavors.map((flavor, i) => {
             const delayClass = `delay-${Math.min(i + 1, 8)}`;
-            const remaining = Number(counts[flavor] || 0);
+            const myStock = Number(myCounts[flavor] || 0);
+            const otherStock = Number(otherCounts[flavor] || 0);
+            const bodegaStock = Number(counts[flavor] || 0);
             const qty = Number(quantities[flavor] || 0);
+            
             return (
               <FlavorCard
                 key={flavor}
                 name={flavor}
-                remaining={remaining}
+                bodega={bodegaStock}
+                myStock={myStock}
+                otherProfile={otherProfile}
+                otherStock={otherStock}
                 qty={qty}
                 onMinus={() => onMinus(flavor)}
                 onPlus={() => onPlus(flavor)}
                 disabledMinus={qty <= 0}
-                disabledPlus={qty >= remaining}
+                disabledPlus={qty >= myStock}
                 delayClass={delayClass}
               />
             );
           })}
+          {visibleFlavors.length === 0 && (
+            <div className="small p-muted">
+              Nadie tiene sabores con stock diario &gt; 0 asignados para hoy.
+            </div>
+          )}
         </div>
 
         <div className="spacer" />
@@ -286,7 +387,7 @@ export default function HomePage({ profile }) {
 
           <div className="spacer" />
 
-          <button className="btn" onClick={sell} disabled={!canSell || saving}>
+          <button className="btn" onClick={() => setIsPaymentMenuOpen(true)} disabled={!canSell || saving}>
             {saving ? "Vendiendo..." : "Vender"}
           </button>
 
@@ -305,6 +406,23 @@ export default function HomePage({ profile }) {
         enabledFlavors={enabledFlavors}
         onToggleEnabled={toggleEnabled}
         onAddFlavor={addFlavor}
+      />
+
+      <DailyStockModal
+        isOpen={isDailyStockOpen}
+        onClose={() => setIsDailyStockOpen(false)}
+        warehouseCounts={counts}
+        allFlavors={allFlavors}
+        initialDailyCounts={myCounts}
+        otherDailyCounts={otherCounts}
+        onSave={saveDailyStock}
+        saving={saving}
+      />
+
+      <PaymentMethodModal
+        isOpen={isPaymentMenuOpen}
+        onClose={() => setIsPaymentMenuOpen(false)}
+        onSelectMethod={sell}
       />
     </div>
   );

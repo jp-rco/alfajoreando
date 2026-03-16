@@ -120,13 +120,17 @@ export default function HistoryPage() {
     setDeletingId(sale.id);
 
     try {
-      // ✅ Borra la venta y (recomendado) devuelve inventario en una transacción
+      // ✅ Borra la venta y devuelve inventario a bodega (y al stock diario si es de hoy) en una transacción
       await runTransaction(db, async (tx) => {
         const saleRef = doc(db, "profiles", sale.profile, "sales", sale.id);
         const invRef = doc(db, "inventory", "current");
+        const dailyRef = doc(db, "inventory", "daily");
 
         const invSnap = await tx.get(invRef);
+        const dailySnap = await tx.get(dailyRef);
+
         const counts = invSnap.data()?.counts || {};
+        const dailyData = dailySnap.data() || {};
 
         const flavor = sale.flavor;
         const qty = Number(sale.qty || 0);
@@ -136,6 +140,20 @@ export default function HistoryPage() {
           const nextCounts = { ...counts };
           nextCounts[flavor] = Number(nextCounts[flavor] || 0) + qty;
           tx.update(invRef, { counts: nextCounts });
+
+          const saleDateObj = toDate(sale.createdAt);
+          const saleDateStr = saleDateObj ? saleDateObj.toLocaleDateString("en-CA") : null;
+
+          if (saleDateStr && saleDateStr === dailyData.date) {
+            const prof = sale.profile;
+            const profData = dailyData[prof] || {};
+            const myCounts = profData.counts || {};
+            
+            const nextMyCounts = { ...myCounts };
+            nextMyCounts[flavor] = Number(nextMyCounts[flavor] || 0) + qty;
+
+            tx.set(dailyRef, { [prof]: { counts: nextMyCounts } }, { merge: true });
+          }
         }
 
         tx.delete(saleRef);
@@ -186,13 +204,45 @@ export default function HistoryPage() {
                 const dayQty = salesOfDay.reduce((acc, s) => acc + (Number(s.qty) || 0), 0);
                 const dayTotal = salesOfDay.reduce((acc, s) => acc + (Number(s.total) || 0), 0);
 
+                const sums = {
+                  JP: { Efectivo: 0, Transferencia: 0 },
+                  Pau: { Efectivo: 0, Transferencia: 0 }
+                };
+
+                for (const s of salesOfDay) {
+                  const m = s.method === "Transferencia" ? "Transferencia" : "Efectivo";
+                  if (sums[s.profile]) {
+                    sums[s.profile][m] += Number(s.total || 0);
+                  }
+                }
+
                 return (
                   <details key={key} className="history-day" open={false}>
                     <summary className="history-summary">
-                      <div className="history-summary-left">
-                        <div className="history-date">{dateLabelFromKey(key)}</div>
-                        <div className="history-meta">
-                          {dayQty} alfajor(es) • {money(dayTotal)}
+                      <div className="history-summary-left" style={{ width: "100%" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                          <div className="history-date">{dateLabelFromKey(key)}</div>
+                          <div className="history-date" style={{ color: "var(--c5)" }}>{money(dayTotal)}</div>
+                        </div>
+                        <div className="history-meta" style={{ marginBottom: "8px" }}>
+                          {dayQty} alfajor(es) vendidos
+                        </div>
+                        
+                        <div style={{ display: "flex",flexDirection: "column", gap: "4px", fontSize: "12px", borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: "8px" }}>
+                          {(sums.JP.Efectivo > 0 || sums.JP.Transferencia > 0) && (
+                            <div style={{ display: "flex", justifyContent: "space-between", color: "var(--muted)" }}>
+                              <strong style={{ color: "var(--text)" }}>JP:</strong>
+                              <span>Efectivo: <strong>{money(sums.JP.Efectivo)}</strong></span>
+                              <span>Transf: <strong>{money(sums.JP.Transferencia)}</strong></span>
+                            </div>
+                          )}
+                          {(sums.Pau.Efectivo > 0 || sums.Pau.Transferencia > 0) && (
+                            <div style={{ display: "flex", justifyContent: "space-between", color: "var(--muted)" }}>
+                              <strong style={{ color: "var(--text)" }}>Pau:</strong>
+                              <span>Efectivo: <strong>{money(sums.Pau.Efectivo)}</strong></span>
+                              <span>Transf: <strong>{money(sums.Pau.Transferencia)}</strong></span>
+                            </div>
+                          )}
                         </div>
                       </div>
                       <div className="history-chevron">⌄</div>
@@ -210,6 +260,9 @@ export default function HistoryPage() {
                               </div>
                               <div className="history-row2">
                                 <strong>{s.flavor}</strong> • {Number(s.qty || 0)} unidad(es)
+                              </div>
+                              <div className="p-muted small" style={{ marginTop: 2 }}>
+                                Pago: {s.method === "Transferencia" ? "📱 Transferencia" : "💵 Efectivo"}
                               </div>
                               {s.notes && (
                                 <div className="p-muted small" style={{ marginTop: 6, fontStyle: "italic" }}>
