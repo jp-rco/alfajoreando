@@ -40,6 +40,8 @@ export default function DailyStockModal({
         <div style={{ display: "flex", flexDirection: "column", gap: 10, maxHeight: "60vh", overflow: "auto", paddingRight: 6 }}>
           {(allFlavors || []).map((flavor) => {
             const warehouseStock = Number(warehouseCounts?.[flavor] || 0);
+            if (warehouseStock <= 0) return null;
+
             const otherStock = Number(otherDailyCounts?.[flavor] || 0);
             const maxAvailable = Math.max(0, warehouseStock - otherStock);
             
@@ -80,9 +82,11 @@ export default function DailyStockModal({
               </div>
             );
           })}
-          {(!allFlavors || allFlavors.length === 0) && (
+          {(!allFlavors || allFlavors.length === 0) ? (
             <div className="small">No hay sabores configurados.</div>
-          )}
+          ) : (allFlavors.filter(f => Number(warehouseCounts?.[f] || 0) > 0).length === 0) ? (
+            <div className="small">No hay sabores con stock en bodega.</div>
+          ) : null}
         </div>
 
         <div className="divider" />
