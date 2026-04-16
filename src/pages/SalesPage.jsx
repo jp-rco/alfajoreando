@@ -13,11 +13,15 @@ function groupSales(sales) {
   let total = 0;
   for (const s of sales) {
     const f = s.flavor || "—";
-    byFlavor[f] = (byFlavor[f] || 0) + (Number(s.qty) || 0);
+    if (!byFlavor[f]) {
+      byFlavor[f] = { qty: 0, total: 0 };
+    }
+    byFlavor[f].qty += (Number(s.qty) || 0);
+    byFlavor[f].total += (Number(s.total) || 0);
     qty += Number(s.qty) || 0;
     total += Number(s.total) || 0;
   }
-  const rows = Object.entries(byFlavor).sort((a, b) => b[1] - a[1]);
+  const rows = Object.entries(byFlavor).sort((a, b) => b[1].qty - a[1].qty);
   return { rows, qty, total };
 }
 
@@ -76,13 +80,13 @@ export default function SalesPage() {
             <div className="small">Aún no hay ventas registradas para JP.</div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {jp.rows.map(([flavor, qty]) => (
+              {jp.rows.map(([flavor, data]) => (
                 <div className="flavor-item" key={flavor}>
                   <div className="flavor-left">
                     <div className="flavor-name">{flavor}</div>
-                    <div className="flavor-stock">{qty} unidad(es)</div>
+                    <div className="flavor-stock">{data.qty} unidad(es)</div>
                   </div>
-                  <div className="badge">{money(qty * unitPrice)}</div>
+                  <div className="badge">{money(data.total)}</div>
                 </div>
               ))}
             </div>
@@ -117,13 +121,13 @@ export default function SalesPage() {
             <div className="small">Aún no hay ventas registradas para Pau.</div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {pau.rows.map(([flavor, qty]) => (
+              {pau.rows.map(([flavor, data]) => (
                 <div className="flavor-item" key={flavor}>
                   <div className="flavor-left">
                     <div className="flavor-name">{flavor}</div>
-                    <div className="flavor-stock">{qty} unidad(es)</div>
+                    <div className="flavor-stock">{data.qty} unidad(es)</div>
                   </div>
-                  <div className="badge">{money(qty * unitPrice)}</div>
+                  <div className="badge">{money(data.total)}</div>
                 </div>
               ))}
             </div>

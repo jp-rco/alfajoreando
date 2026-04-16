@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { db } from "../firebase.js";
 import { doc, onSnapshot, getDoc, setDoc, updateDoc } from "firebase/firestore";
+import EditFlavorsModal from "../components/EditFlavorsModal.jsx";
 
 export default function InventoryPage() {
   const [settings, setSettings] = useState(null);
@@ -8,6 +9,7 @@ export default function InventoryPage() {
 
   const [localCounts, setLocalCounts] = useState({});
   const [saving, setSaving] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
 
   useEffect(() => {
     const ref = doc(db, "settings", "app");
@@ -24,6 +26,32 @@ export default function InventoryPage() {
   }, []);
 
   const allFlavors = useMemo(() => settings?.allFlavors || [], [settings]);
+  const enabledFlavors = useMemo(() => settings?.enabledFlavors || [], [settings]);
+
+  const toggleEnabled = async (flavor) => {
+    // Empty
+  };
+
+  const addFlavor = async (flavor) => {
+    const clean = flavor.trim();
+    if (!clean) return;
+
+    const ref = doc(db, "settings", "app");
+    const currAll = settings?.allFlavors || [];
+    const currEnabled = settings?.enabledFlavors || [];
+    if (currAll.includes(clean)) return;
+
+    await updateDoc(ref, {
+      allFlavors: [...currAll, clean]
+    });
+
+    const invRef = doc(db, "inventory", "current");
+    const invSnap = await getDoc(invRef);
+    const invCounts = invSnap.data()?.counts || {};
+    if (invCounts[clean] == null) {
+      await updateDoc(invRef, { counts: { ...invCounts, [clean]: 0 } });
+    }
+  };
 
   // ensure all flavors exist in inventory
   useEffect(() => {
@@ -68,10 +96,17 @@ export default function InventoryPage() {
 
   return (
     <div className="card animate-fade-in-up">
-      <div className="h2">Inventario</div>
-      <p className="p-muted">
-        Aquí defines cuántos alfajores llegaron por sabor. Se actualiza la pestaña Principal automáticamente.
-      </p>
+      <div className="row" style={{ justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "10px" }}>
+        <div>
+          <div className="h2">Inventario</div>
+          <p className="p-muted">
+            Aquí defines cuántos alfajores llegaron por sabor. Se actualiza la pestaña Principal automáticamente.
+          </p>
+        </div>
+        <button className="btn secondary" onClick={() => setIsEditOpen(true)}>
+          Añadir sabor
+        </button>
+      </div>
 
       <div className="spacer" />
 
@@ -107,7 +142,7 @@ export default function InventoryPage() {
 
           {allFlavors.length === 0 && (
             <div className="small">
-              No hay sabores en settings. Ve a Principal → Editar sabores → Agregar.
+              No hay sabores configurados aún. Toca arriba en Añadir sabores.
             </div>
           )}
         </div>
@@ -124,6 +159,15 @@ export default function InventoryPage() {
       <div className="small">
         Consejo: si quieres que el inventario “sume” llegadas (en vez de reemplazar), lo ajustamos con un toggle “Sumar/Remplazar”.
       </div>
+
+      <EditFlavorsModal
+        isOpen={isEditOpen}
+        onClose={() => setIsEditOpen(false)}
+        allFlavors={allFlavors}
+        enabledFlavors={[]}
+        onToggleEnabled={toggleEnabled}
+        onAddFlavor={addFlavor}
+      />
     </div>
   );
 }

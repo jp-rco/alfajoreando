@@ -118,6 +118,12 @@ export default function FinancePage() {
     await updateDoc(doc(db, "settings", "app"), { totalCosts: num });
   };
 
+  // Update unitPrice
+  const updateUnitPrice = async (value) => {
+    const num = Math.max(0, Number(value || 0));
+    await updateDoc(doc(db, "settings", "app"), { unitPrice: num });
+  };
+
   return (
     <div className="card animate-fade-in-up">
       <div className="h2">Finanzas</div>
@@ -127,10 +133,22 @@ export default function FinancePage() {
 
       <div className="spacer" />
 
-      {/* ✅ MISMO RENGLÓN: editar costo caja + total alfajores BD */}
+      {/* ✅ MISMO RENGLÓN: editar precio + costo caja + total alfajores BD */}
       <div className="card">
-        <div className="row" style={{ alignItems: "flex-end", justifyContent: "space-between", gap: 12 }}>
-          <div style={{ flex: 1, minWidth: 180 }}>
+        <div className="row" style={{ alignItems: "flex-end", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+          
+          <div style={{ flex: 1, minWidth: 120 }}>
+            <div className="label">Precio Unit.</div>
+            <input
+              className="input"
+              type="number"
+              min="0"
+              value={unitPrice}
+              onChange={(e) => updateUnitPrice(e.target.value)}
+            />
+          </div>
+
+          <div style={{ flex: 1, minWidth: 120 }}>
             <div className="label">Costos Totales</div>
             <input
               className="input"

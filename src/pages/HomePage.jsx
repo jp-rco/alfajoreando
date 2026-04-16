@@ -16,7 +16,7 @@ import DailyStockModal from "../components/DailyStockModal.jsx";
 import PaymentMethodModal from "../components/PaymentMethodModal.jsx";
 
 const DEFAULTS = {
-  unitPrice: 4500,
+  unitPrice: 5000,
   totalCosts: 0,
   allFlavors: ["Snickers", "Red Velvet", "Limón", "Maracuyá", "Snowreo"],
   enabledFlavors: ["Snickers", "Red Velvet", "Limón", "Maracuyá", "Snowreo"],
@@ -126,21 +126,20 @@ export default function HomePage({ profile }) {
   };
 
   const unitPrice = settings?.unitPrice ?? DEFAULTS.unitPrice;
-  const enabledFlavors = useMemo(() => settings?.enabledFlavors || [], [settings]);
   const allFlavors = useMemo(() => settings?.allFlavors || [], [settings]);
 
   useEffect(() => {
     setQuantities((prev) => {
       const next = { ...prev };
-      enabledFlavors.forEach((f) => {
+      allFlavors.forEach((f) => {
         if (typeof next[f] !== "number") next[f] = 0;
       });
       Object.keys(next).forEach((k) => {
-        if (!enabledFlavors.includes(k)) delete next[k];
+        if (!allFlavors.includes(k)) delete next[k];
       });
       return next;
     });
-  }, [enabledFlavors]);
+  }, [allFlavors]);
 
   const totalQty = useMemo(
     () => Object.values(quantities).reduce((a, b) => a + (Number(b) || 0), 0),
@@ -161,9 +160,10 @@ export default function HomePage({ profile }) {
     return allFlavors.filter((f) => {
       const myHave = Number(myCounts[f] || 0);
       const otherHave = Number(otherCounts[f] || 0);
-      return myHave > 0 || otherHave > 0;
+      const bodegaHave = Number(counts[f] || 0);
+      return bodegaHave > 0 || myHave > 0 || otherHave > 0;
     });
-  }, [allFlavors, myCounts, otherCounts]);
+  }, [allFlavors, myCounts, otherCounts, counts]);
 
   const canSell = useMemo(() => {
     if (totalQty <= 0) return false;
@@ -265,10 +265,7 @@ export default function HomePage({ profile }) {
   };
 
   const toggleEnabled = async (flavor) => {
-    const ref = doc(db, "settings", "app");
-    const curr = settings?.enabledFlavors || [];
-    const next = curr.includes(flavor) ? curr.filter((x) => x !== flavor) : [...curr, flavor];
-    await updateDoc(ref, { enabledFlavors: next });
+    // Ya no se usa la visibilidad manual
   };
 
   const addFlavor = async (flavor) => {
@@ -281,8 +278,7 @@ export default function HomePage({ profile }) {
     if (currAll.includes(clean)) return;
 
     await updateDoc(ref, {
-      allFlavors: [...currAll, clean],
-      enabledFlavors: [...currEnabled, clean],
+      allFlavors: [...currAll, clean]
     });
 
     const invRef = doc(db, "inventory", "current");
@@ -306,7 +302,7 @@ export default function HomePage({ profile }) {
               Stock Diario
             </button>
             <button className="btn secondary" onClick={() => setIsEditOpen(true)}>
-              Editar sabores
+              Añadir sabor
             </button>
           </div>
         </div>
@@ -340,7 +336,7 @@ export default function HomePage({ profile }) {
           })}
           {visibleFlavors.length === 0 && (
             <div className="small p-muted">
-              Nadie tiene sabores con stock diario &gt; 0 asignados para hoy.
+              No hay sabores con stock en bodega ni asignados para hoy.
             </div>
           )}
         </div>
@@ -403,7 +399,7 @@ export default function HomePage({ profile }) {
         isOpen={isEditOpen}
         onClose={() => setIsEditOpen(false)}
         allFlavors={allFlavors}
-        enabledFlavors={enabledFlavors}
+        enabledFlavors={[]}
         onToggleEnabled={toggleEnabled}
         onAddFlavor={addFlavor}
       />
