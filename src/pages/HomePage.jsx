@@ -45,6 +45,7 @@ export default function HomePage({ profile }) {
   const [isDailyStockOpen, setIsDailyStockOpen] = useState(false);
   const [isPaymentMenuOpen, setIsPaymentMenuOpen] = useState(false);
   const [hasCheckedDaily, setHasCheckedDaily] = useState(false);
+  const [viewMode, setViewMode] = useState('stock');
 
   useEffect(() => {
     const ref = doc(db, "settings", "app");
@@ -156,14 +157,25 @@ export default function HomePage({ profile }) {
   const myCounts = isToday ? (dailyInventory?.[profile]?.counts || {}) : {};
   const otherCounts = isToday ? (dailyInventory?.[otherProfile]?.counts || {}) : {};
 
+  const { totalMyStock, totalBodegaStock } = useMemo(() => {
+    let my = 0;
+    let bod = 0;
+    allFlavors.forEach(f => {
+      my += Number(myCounts[f] || 0);
+      bod += Number(counts[f] || 0);
+    });
+    return { totalMyStock: my, totalBodegaStock: bod };
+  }, [allFlavors, myCounts, counts]);
+
   const visibleFlavors = useMemo(() => {
     return allFlavors.filter((f) => {
-      const myHave = Number(myCounts[f] || 0);
-      const otherHave = Number(otherCounts[f] || 0);
-      const bodegaHave = Number(counts[f] || 0);
-      return bodegaHave > 0 || myHave > 0 || otherHave > 0;
+      if (viewMode === 'stock') {
+        return Number(myCounts[f] || 0) > 0;
+      } else {
+        return Number(counts[f] || 0) > 0;
+      }
     });
-  }, [allFlavors, myCounts, otherCounts, counts]);
+  }, [allFlavors, viewMode, myCounts, counts]);
 
   const canSell = useMemo(() => {
     if (totalQty <= 0) return false;
@@ -304,6 +316,33 @@ export default function HomePage({ profile }) {
             <button className="btn secondary" onClick={() => setIsEditOpen(true)}>
               Añadir sabor
             </button>
+          </div>
+        </div>
+
+        <div className="spacer" />
+
+        <div className="row" style={{ justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ display: "flex", gap: "4px", background: "rgba(0,0,0,0.2)", padding: "4px", borderRadius: "14px" }}>
+            <button 
+              className={`navbtn ${viewMode === 'stock' ? 'active' : ''}`} 
+              onClick={() => setViewMode('stock')}
+              style={viewMode === 'stock' ? { padding: "6px 12px" } : { border: "1px solid transparent", background: "transparent", padding: "6px 12px" }}
+            >
+              Mi Stock
+            </button>
+            <button 
+              className={`navbtn ${viewMode === 'bodega' ? 'active' : ''}`} 
+              onClick={() => setViewMode('bodega')}
+              style={viewMode === 'bodega' ? { padding: "6px 12px" } : { border: "1px solid transparent", background: "transparent", padding: "6px 12px" }}
+            >
+              Bodega
+            </button>
+          </div>
+          <div className="small">
+            <strong>Total {viewMode === 'stock' ? 'Stock' : 'Bodega'}: </strong>
+            <span style={{ color: "var(--c5)", fontWeight: "900", fontSize: "14px" }}>
+              {viewMode === 'stock' ? totalMyStock : totalBodegaStock}
+            </span>
           </div>
         </div>
 
