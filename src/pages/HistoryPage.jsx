@@ -120,7 +120,7 @@ export default function HistoryPage() {
     setDeletingId(sale.id);
 
     try {
-      // ✅ Borra la venta y devuelve inventario a bodega (y al stock diario si es de hoy) en una transacción
+      // ✅ Borra la venta y devuelve inventario a bodega (y al stock del usuario) en una transacción
       await runTransaction(db, async (tx) => {
         const saleRef = doc(db, "profiles", sale.profile, "sales", sale.id);
         const invRef = doc(db, "inventory", "current");
@@ -141,19 +141,15 @@ export default function HistoryPage() {
           nextCounts[flavor] = Number(nextCounts[flavor] || 0) + qty;
           tx.update(invRef, { counts: nextCounts });
 
-          const saleDateObj = toDate(sale.createdAt);
-          const saleDateStr = saleDateObj ? saleDateObj.toLocaleDateString("en-CA") : null;
+          // Siempre devolvemos el stock al usuario
+          const prof = sale.profile;
+          const profData = dailyData[prof] || {};
+          const myCounts = profData.counts || {};
+          
+          const nextMyCounts = { ...myCounts };
+          nextMyCounts[flavor] = Number(nextMyCounts[flavor] || 0) + qty;
 
-          if (saleDateStr && saleDateStr === dailyData.date) {
-            const prof = sale.profile;
-            const profData = dailyData[prof] || {};
-            const myCounts = profData.counts || {};
-            
-            const nextMyCounts = { ...myCounts };
-            nextMyCounts[flavor] = Number(nextMyCounts[flavor] || 0) + qty;
-
-            tx.set(dailyRef, { [prof]: { counts: nextMyCounts } }, { merge: true });
-          }
+          tx.set(dailyRef, { [prof]: { counts: nextMyCounts } }, { merge: true });
         }
 
         tx.delete(saleRef);

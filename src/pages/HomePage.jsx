@@ -102,25 +102,15 @@ export default function HomePage({ profile }) {
     try {
       const currentDate = new Date().toLocaleDateString('en-CA');
       
-      const isNewDate = dailyInventory?.date !== currentDate;
-      const updateData = {};
-
-      if (isNewDate) {
-        // Al empezar el día, escribimos la fecha y reiniciamos todo,
-        // pero solo inicializamos a 0 el del *otro* usuario,
-        // y guardamos lo que asigne el usuario actual.
-        updateData.date = currentDate;
-        updateData[profile] = { counts: countsMap };
-        updateData[otherProfile] = { counts: {} }; // El otro perfil arranca vacío
-      } else {
-        // En el mismo día, solo mezclamos lo correspondiente a este usuario
-        updateData[profile] = { counts: countsMap };
-      }
+      const updateData = {
+        date: currentDate,
+        [profile]: { counts: countsMap }
+      };
 
       await setDoc(doc(db, "inventory", "daily"), updateData, { merge: true });
       setIsDailyStockOpen(false);
     } catch (e) {
-      alert("Error guardando stock diario.");
+      alert("Error guardando stock.");
     } finally {
       setSaving(false);
     }
@@ -151,11 +141,8 @@ export default function HomePage({ profile }) {
 
   const counts = inventory?.counts || {};
   
-  const currentDate = new Date().toLocaleDateString('en-CA');
-  const isToday = dailyInventory?.date === currentDate;
-  
-  const myCounts = isToday ? (dailyInventory?.[profile]?.counts || {}) : {};
-  const otherCounts = isToday ? (dailyInventory?.[otherProfile]?.counts || {}) : {};
+  const myCounts = dailyInventory?.[profile]?.counts || {};
+  const otherCounts = dailyInventory?.[otherProfile]?.counts || {};
 
   const { totalMyStock, totalBodegaStock } = useMemo(() => {
     let my = 0;
@@ -225,7 +212,7 @@ export default function HomePage({ profile }) {
           const want = Number(quantities[f] || 0);
           const haveWarehouse = Number(dbCounts[f] || 0);
           const haveDaily = Number(dailyDbMyCounts[f] || 0);
-          if (want > haveDaily) throw new Error(`Stock diario insuficiente para ${f}`);
+          if (want > haveDaily) throw new Error(`Stock insuficiente para ${f}`);
           if (want > haveWarehouse) throw new Error(`Stock bodega insuficiente para ${f}`);
         }
 
@@ -311,7 +298,7 @@ export default function HomePage({ profile }) {
           </div>
           <div style={{ display: "flex", gap: "10px" }}>
             <button className="btn outline" onClick={() => setIsDailyStockOpen(true)}>
-              Stock Diario
+              Modificar Stock
             </button>
             <button className="btn secondary" onClick={() => setIsEditOpen(true)}>
               Añadir sabor

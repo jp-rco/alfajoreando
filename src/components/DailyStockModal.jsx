@@ -29,10 +29,24 @@ export default function DailyStockModal({
       <div className="modal" onMouseDown={(e) => e.stopPropagation()}>
         <div className="modal-head">
           <div>
-            <div className="h2">Stock del Día</div>
+            <div className="h2">Modificar Stock</div>
             <p className="p-muted">¿Cuántos vas a vender hoy? Máximo = Bodega - Stock del otro usuario.</p>
           </div>
-          <button className="btn secondary" onClick={onClose} disabled={saving}>Cerrar</button>
+          <div style={{ display: "flex", gap: "8px" }}>
+            <button 
+              className="btn outline" 
+              style={{ borderColor: "var(--c4)", color: "var(--c4)" }}
+              onClick={() => {
+                const zeroed = {};
+                allFlavors.forEach(f => zeroed[f] = 0);
+                setLocalCounts(zeroed);
+              }}
+              disabled={saving}
+            >
+              Reiniciar
+            </button>
+            <button className="btn secondary" onClick={onClose} disabled={saving}>Cerrar</button>
+          </div>
         </div>
 
         <div className="divider" />
@@ -93,7 +107,7 @@ export default function DailyStockModal({
 
         <div className="row" style={{ justifyContent: "flex-end" }}>
           <button className="btn" onClick={handleSave} disabled={saving}>
-            {saving ? "Guardando..." : "Guardar Stock Diario"}
+            {saving ? "Guardando..." : "Guardar Stock"}
           </button>
         </div>
       </div>
